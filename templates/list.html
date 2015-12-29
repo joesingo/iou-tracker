@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+
+</head>
+
+<body>
+    <h1>IOU tracker</h1>
+
+    {% for i in data %}
+        <h2>{{ i }}</h2>
+
+        <p>
+            {% if data[i]["owed"] > 0 %}
+                {{ i }} owes you <span class="credit">{{ data[i]["owed"] }}</span>
+            {% elif data[i]["owed"] < 0 %}
+                You owe {{ i }} <span class="debt">{{ -data[i]["owed"] }}</span>
+            {% else %}
+                You and {{ i }} are even
+            {% endif %}
+        </p>
+
+<!--         <table>
+            <tr>
+                <th>Date</th>
+                <th>Comment</th>
+                <th>Amount</th>
+            </tr>
+            {% for t in data[i]["transactions"] %}
+                <tr>
+                    <td>{{ t["formatted_date"] }}</td>
+                    <td>{{ t["comment"]}}</td>
+                    <td>{{ t["amount"] }}</td>
+                </tr>
+            {% endfor %}
+        </table> -->
+
+    {% endfor %}
+</body>
+
+</html>
