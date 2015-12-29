@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+
+</head>
+
+<body>
+    <form action="" method="POST">
+        {% if error %}
+        <p>Incorrect login details</p>
+        {% endif %}
+
+        <input type="text" placeholder="Username" name="username" /><br />
+        <input type="password" placeholder="Password" name="password"><br />
+        <input type="submit" value="Login" />
+    </form>
+</body>
+
+</html>
