@@ -1,0 +1,11 @@
+Tests:
+------
+
+- Go to / when not logged in => redirected to /login
+- Login with incorrect credentials => login error
+- Login with correct credentials => redirected to /
+- Go to /logout, go to / => redirected to /
+- Logout when not logged in => redirected to /login
+
+- Call create_iou() => check document appears in DB
+- Login as both users => check IOU shows on /
