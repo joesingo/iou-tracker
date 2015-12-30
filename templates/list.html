@@ -3,40 +3,73 @@
 
 <head>
 
+    <style type="text/css">
+        body {
+            font-family: "Verdana", sans-serif;
+        }
+        .trans-table {
+            border-collapse: collapse;
+        }
+        .trans-table td, .trans-table th {
+            border: 2px solid black;
+            padding: 7px 15px;
+        }
+
+        .owed {
+            color: green;
+        }
+        .debt {
+            color: red;
+        }
+
+    </style>
+
 </head>
 
 <body>
     <h1>IOU tracker</h1>
 
-    {% for i in data %}
-        <h2>{{ i }}</h2>
+    <div id="content">
 
-        <p>
-            {% if data[i]["owed"] > 0 %}
-                {{ i }} owes you <span class="credit">{{ data[i]["owed"] }}</span>
-            {% elif data[i]["owed"] < 0 %}
-                You owe {{ i }} <span class="debt">{{ -data[i]["owed"] }}</span>
-            {% else %}
-                You and {{ i }} are even
+        {% for i in data %}
+            <h2>{{ i }}</h2>
+
+            <p>
+                {% if data[i]["owed"] > 0 %}
+                    {{ i }} owes you <span class="owed">{{ data[i]["currency"] }}{{ data[i]["owed"] }}</span>
+                {% elif data[i]["owed"] < 0 %}
+                    You owe {{ i }} <span class="debt">{{ data[i]["currency"] }}{{ -data[i]["owed"] }}</span>
+                {% else %}
+                    You and {{ i }} are even
+                {% endif %}
+            </p>
+
+            {% if data[i]["transactions"] %}
+                <table class="trans-table">
+                    <tr>
+                        <th>Date</th>
+                        <th>Amount</th>
+                        <th>Comment</th>
+                    </tr>
+                    {% for t in data[i]["transactions"] %}
+                        <tr>
+                            <td>{{ t["formatted_date"] }}</td>
+                            <td>
+                                {% if t["lender"] == i %}
+                                    You borrowed <span class="debt">{{ data[i]["currency"] }}{{ t["amount"] }}</span>
+                                {% else %}
+                                    {{ i }} borrowed <span class="owed">{{ data[i]["currency"] }}{{ t["amount"] }}</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ t["comment"] }}</td>
+                        </tr>
+                    {% endfor %}
+                </table>
             {% endif %}
-        </p>
 
-<!--         <table>
-            <tr>
-                <th>Date</th>
-                <th>Comment</th>
-                <th>Amount</th>
-            </tr>
-            {% for t in data[i]["transactions"] %}
-                <tr>
-                    <td>{{ t["formatted_date"] }}</td>
-                    <td>{{ t["comment"]}}</td>
-                    <td>{{ t["amount"] }}</td>
-                </tr>
-            {% endfor %}
-        </table> -->
+        {% endfor %}
 
-    {% endfor %}
+    </div>
 </body>
 
 </html>

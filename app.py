@@ -1,6 +1,9 @@
 import json
+from datetime import datetime
+
 from flask import Flask, session, redirect, render_template, request
 import requests
+
 from passwd import PASSWORDS
 
 BASE_DB_URL = "http://localhost:5984/"
@@ -16,7 +19,7 @@ def create_iou(a, b):
     doc = {}
     doc["people"] = [a, b]
     doc["transactions"] = []
-    doc["currency"] = "GBP"
+    doc["currency"] = u"\xA3"
 
     res = requests.get(BASE_DB_URL + "_uuids")
     uuid = json.loads(res.content)["uuids"][0]
@@ -60,9 +63,13 @@ def home():
 
         # Work out the amount owed to the user
         data[person]["owed"] = 0
-        for t in row["value"]["transactions"]:
+        for i, t in enumerate(row["value"]["transactions"]):
             sign = 1 if t["lender"] == session["username"] else -1
             data[person]["owed"] += sign * t["amount"]
+
+            # Format date so it can be displayed nicely in template
+            date = datetime.fromtimestamp(t["timestamp"])
+            data[person]["transactions"][i]["formatted_date"] = format(date, "%d/%m/%y")
 
     return render_template("list.html", data=data)
 
