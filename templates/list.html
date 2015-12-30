@@ -4,8 +4,31 @@
 <head>
 
     <style type="text/css">
+        * {
+            box-sizing: border-box;
+        }
         body {
             font-family: "Verdana", sans-serif;
+            background: #8C3A32;
+            margin: 0;
+            min-height: 100%;
+            text-align: center;
+        }
+        html {
+            height: 100%;
+        }
+        #content {
+            margin: auto;
+            display: inline-block;
+            min-width: 400px;
+            height: 100%;
+            background: white;
+            padding: 30px;
+            text-align: left;
+        }
+        header a {
+            font-size: 0.75em;
+            color: inherit;
         }
         .trans-table {
             border-collapse: collapse;
@@ -13,6 +36,24 @@
         .trans-table td, .trans-table th {
             border: 2px solid black;
             padding: 7px 15px;
+            text-align: center;
+        }
+        .trans-table .amount {
+            width: 6em;
+        }
+        .trans-table .comment {
+            width: 15em;
+        }
+        button {
+            background: #F29D52;
+            color: white;
+            padding: 8px 15px;
+            outline: none;
+            border: none;
+            margin-right: 10px;
+        }
+        button:hover {
+            background: #D97E4A;
         }
 
         .owed {
@@ -27,9 +68,12 @@
 </head>
 
 <body>
-    <h1>IOU tracker</h1>
-
     <div id="content">
+
+        <header>
+            <h1>IOU tracker</h1>
+            <p><a href="/logout/">Logout</a></p>
+        </header>
 
         {% for i in data %}
             <h2>{{ i }}</h2>
@@ -49,28 +93,28 @@
                 <button class="add-button" data-id="{{ loop.index }}" data-borrower="{{ i }}">{{ i }} borrowed</button>
             </p>
 
-            {% if data[i]["transactions"] %}
-                <table class="trans-table" data-id="{{ loop.index }}">
+            <table class="trans-table" data-id="{{ loop.index }}">
+                <tr>
+                    <th>Date</th>
+                    <th>Amount</th>
+                    <th>Comment</th>
+                </tr>
+                {% for t in data[i]["transactions"] %}
                     <tr>
-                        <th>Date</th>
-                        <th>Amount</th>
-                        <th>Comment</th>
+                        <td>{{ t["formatted_date"] }}</td>
+                        <td>
+                            {% if t["lender"] == i %}
+                                You borrowed <span class="debt">{{ data[i]["currency"] }}{{ t["amount"] }}</span>
+                            {% else %}
+                                {{ i }} borrowed <span class="owed">{{ data[i]["currency"] }}{{ t["amount"] }}</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ t["comment"] }}</td>
                     </tr>
-                    {% for t in data[i]["transactions"] %}
-                        <tr>
-                            <td>{{ t["formatted_date"] }}</td>
-                            <td>
-                                {% if t["lender"] == i %}
-                                    You borrowed <span class="debt">{{ data[i]["currency"] }}{{ t["amount"] }}</span>
-                                {% else %}
-                                    {{ i }} borrowed <span class="owed">{{ data[i]["currency"] }}{{ t["amount"] }}</span>
-                                {% endif %}
-                            </td>
-                            <td>{{ t["comment"] }}</td>
-                        </tr>
-                    {% endfor %}
-                </table>
-            {% endif %}
+                {% else %}
+                    <td colspan=3>Nothing to show!</td>
+                {% endfor %}
+            </table>
 
         {% endfor %}
 
@@ -100,8 +144,8 @@
                     var row = document.createElement("tr");
                     row.innerHTML = `
                         <td>${formattedDate}</td>
-                        <td>${borrower} borrowed <input type="text" placeholder="Amount" /></td>
-                        <td><input type="text" placeholder="Comment" /></td>
+                        <td>${borrower} borrowed <input type="number" placeholder="Amount" class="amount" /></td>
+                        <td><input type="text" placeholder="Comment" class="comment" /></td>
                     `;
 
                     tables[i].appendChild(row);
