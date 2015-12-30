@@ -1,11 +1,7 @@
 import json
 from flask import Flask, session, redirect, render_template, request
 import requests
-
-# Make sure usenames do not contain ';;;'!
-PASSWORDS = {
-    "joe": "pass"
-}
+from passwd import PASSWORDS
 
 BASE_DB_URL = "http://localhost:5984/"
 DB_URL = BASE_DB_URL + "iou/"
