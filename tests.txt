@@ -9,3 +9,9 @@ Tests:
 
 - Call create_iou() => check document appears in DB
 - Login as both users => check IOU shows on /
+
+- 2 buttons to add transaction shown for each IOU
+- Button click => new rows are added to TOP of table, and borrower is correct
+- Leave amount blank and press save => error
+- Enter non-number in amount box and press save => error
+- Leave comment blank => error

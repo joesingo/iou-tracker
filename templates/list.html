@@ -38,6 +38,9 @@
             padding: 7px 15px;
             text-align: center;
         }
+        .trans-table .amount, .trans-table .comment {
+            padding: 4px;
+        }
         .trans-table .amount {
             width: 6em;
         }
@@ -80,59 +83,61 @@
             <p><a href="/logout/">Logout</a></p>
         </header>
 
+
         {% for i in data %}
-            <h2>{{ i }}</h2>
+            <div class="iou" data-person="{{ i }}">
+                <h2>{{ i }}</h2>
 
-            <p>
-                {% if data[i]["owed"] > 0 %}
-                    {{ i }} owes you <span class="owed">{{ data[i]["currency"] }}{{ data[i]["owed"] }}</span>
-                {% elif data[i]["owed"] < 0 %}
-                    You owe {{ i }} <span class="debt">{{ data[i]["currency"] }}{{ -data[i]["owed"] }}</span>
-                {% else %}
-                    You and {{ i }} are even
-                {% endif %}
-            </p>
+                <p>
+                    {% if data[i]["owed"] > 0 %}
+                        {{ i }} owes you <span class="owed">{{ data[i]["currency"] }}{{ data[i]["owed"] }}</span>
+                    {% elif data[i]["owed"] < 0 %}
+                        You owe {{ i }} <span class="debt">{{ data[i]["currency"] }}{{ -data[i]["owed"] }}</span>
+                    {% else %}
+                        You and {{ i }} are even
+                    {% endif %}
+                </p>
 
-            <p>
-                <button class="add-button" data-id="{{ loop.index }}" data-borrower="You">I borrowed</button>
-                <button class="add-button" data-id="{{ loop.index }}" data-borrower="{{ i }}">{{ i }} borrowed</button>
-            </p>
+                <p>
+                    <button onclick="addRow({{ loop.index }}, 'You')">I borrowed</button>
+                    <button onclick="addRow({{ loop.index }}, '{{ i }}')">{{ i }} borrowed</button>
+                </p>
 
-            <table class="trans-table" id="table{{ loop.index }}">
-                <tr>
-                    <th>Date</th>
-                    <th>Amount</th>
-                    <th>Comment</th>
-                </tr>
-                {% for t in data[i]["transactions"] %}
-                    <tr>
-                        <td>{{ t["formatted_date"] }}</td>
-                        <td>
-                            {% if t["borrower"] == i %}
-                                {{ i }} borrowed <span class="owed">{{ data[i]["currency"] }}{{ t["amount"] }}</span>
-                            {% else %}
-                                You borrowed <span class="debt">{{ data[i]["currency"] }}{{ t["amount"] }}</span>
-                            {% endif %}
-                        </td>
-                        <td>{{ t["comment"] }}</td>
-                    </tr>
-                {% else %}
-                    <td colspan=3>Nothing to show!</td>
-                {% endfor %}
+                <table class="trans-table" id="table{{ loop.index }}">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Amount</th>
+                            <th>Comment</th>
+                        </tr>
+                    </thead>
 
-<!--                 {% for name in ["You", i] %}
-                    <tr class="">
-                        <td></td>
-                        <td>{{ name }} borrowed {{ data[i]["currency"] }}<input type="text" class="amount" placeholder="Amount" /></td>
-                        <td><input type="text" class="comment" placeholder="Comment" /></td>
-                    </tr>
-                {% endfor %} -->
+                    <tbody>
 
-            </table>
+                        {% for t in data[i]["transactions"] %}
+                            <tr>
+                                <td>{{ t["formatted_date"] }}</td>
+                                <td>
+                                    {% if t["borrower"] == i %}
+                                        {{ i }} borrowed <span class="owed">{{ data[i]["currency"] }}{{ t["amount"] }}</span>
+                                    {% else %}
+                                        You borrowed <span class="debt">{{ data[i]["currency"] }}{{ t["amount"] }}</span>
+                                    {% endif %}
+                                </td>
+                                <td>{{ t["comment"] }}</td>
+                            </tr>
+                        {% else %}
+                            <td colspan=3>Nothing to show!</td>
+                        {% endfor %}
 
-            <p>
-                <button class="save-button" data-id="{{ loop.index }}" id="save-button{{ loop.index }}">Save</button>
-            </p>
+                    </tbody>
+                </table>
+
+                <p>
+                    <button class="save-button" id="save-button{{ loop.index }}" onclick="save({{ loop.index }})">Save</button>
+                </p>
+
+            </div>
 
         {% endfor %}
 
@@ -140,10 +145,9 @@
 
     <script type="text/javascript">
 
-        var addRow = function() {
-            var id = this.getAttribute("data-id");
-            var borrower = this.getAttribute("data-borrower");
+        var addRow = function(id, borrower) {
 
+            // Get date
             var date = new Date();
             var day = date.getDate();
             var month = date.getMonth() + 1;
@@ -153,60 +157,66 @@
             if (month < 10) month = "0" + month;
             var formattedDate = day + "/" + month + "/" + year;
 
+            var table = document.getElementById("table" + id);
+            var tbody = table.getElementsByTagName("tbody")[0];
+
+            var borrowerUsername = borrower === "You" ? "{{ username }}" : borrower;
+
+            // Create the new row
             var row = document.createElement("tr");
-            row.className = "new-transaction";
-            row.setAttribute("data-borrower", borrower);
+            row.setAttribute("data-borrower", borrowerUsername);
+            row.setAttribute("class", "new-transaction");
+
             row.innerHTML = `
                 <td>${formattedDate}</td>
-                <td>${borrower} borrowed <input type="text" placeholder="Amount" class="amount" /></td>
-                <td><input type="text" placeholder="Comment" class="comment" /></td>
+                <td>${borrower} borrowed <input type="text" placeholder="Amount" class="amount" onfocus="this.className='amount';" /></td>
+                <td><input type="text" placeholder="Comment" class="comment" onfocus="this.className='comment';" /></td>
             `;
 
-            document.getElementById("table" + id).appendChild(row);
+            // Put the new row at the TOP of the table
+            var firstRow = tbody.getElementsByTagName("tr")[0];
+            tbody.insertBefore(row, firstRow);
 
             // Show save button
             document.getElementById("save-button" + id).style.display = "inline-block";
         }
 
-        var addButtons = document.getElementsByClassName("add-button");
-        for (var i=0; i<addButtons.length; i++) {
-            addButtons[i].onclick = addRow;
-        }
-
-        var saveTable = function() {
-            var id = this.getAttribute("data-id");
+        var save = function(id) {
             var table = document.getElementById("table" + id);
             var newRows = table.getElementsByClassName("new-transaction");
 
             var data = [];
+            var error = false;
+
             for (var i=0; i<newRows.length; i++) {
+
                 // Check that amount is a number
                 var amount = newRows[i].getElementsByClassName("amount")[0];
-                if (amount.value - 0 != amount.value) {
+                if (amount.value === "" || amount.value - 0 != amount.value) {
                     amount.className += " error";
-                    return false;
+                    error = true;
                 }
 
                 var borrower = newRows[i].getAttribute("data-borrower");
-                if (borrower === "You") {
-                    borrower = "{{ username }}";
+                var comment = newRows[i].getElementsByClassName("comment")[0];
+
+                // Check that comment is not empty
+                if (comment.value === "") {
+                    comment.className += " error";
+                    error = true;
                 }
 
-                var comment = newRows[i].getElementsByClassName("comment")[0];
                 data.push({
                     "timestamp": Date.now(),
-                    "amount": amount.value,
                     "comment": comment.value,
+                    "amount": amount.value,
                     "borrower": borrower
                 })
-
-                console.log(data[i]);
             }
-        }
 
-        var saveButtons = document.getElementsByClassName("save-button");
-        for (var i=0; i<saveButtons.length; i++) {
-            saveButtons[i].onclick = saveTable;
+            if (!error) {
+                console.log(data);
+            }
         }
 
     </script>
