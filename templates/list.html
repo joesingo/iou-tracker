@@ -55,12 +55,17 @@
         button:hover {
             background: #D97E4A;
         }
-
+        .save-button {
+            display: none;
+        }
         .owed {
             color: green;
         }
         .debt {
             color: red;
+        }
+        .error {
+            border: 2px solid red;
         }
 
     </style>
@@ -93,7 +98,7 @@
                 <button class="add-button" data-id="{{ loop.index }}" data-borrower="{{ i }}">{{ i }} borrowed</button>
             </p>
 
-            <table class="trans-table" data-id="{{ loop.index }}">
+            <table class="trans-table" id="table{{ loop.index }}">
                 <tr>
                     <th>Date</th>
                     <th>Amount</th>
@@ -103,10 +108,10 @@
                     <tr>
                         <td>{{ t["formatted_date"] }}</td>
                         <td>
-                            {% if t["lender"] == i %}
-                                You borrowed <span class="debt">{{ data[i]["currency"] }}{{ t["amount"] }}</span>
-                            {% else %}
+                            {% if t["borrower"] == i %}
                                 {{ i }} borrowed <span class="owed">{{ data[i]["currency"] }}{{ t["amount"] }}</span>
+                            {% else %}
+                                You borrowed <span class="debt">{{ data[i]["currency"] }}{{ t["amount"] }}</span>
                             {% endif %}
                         </td>
                         <td>{{ t["comment"] }}</td>
@@ -114,48 +119,96 @@
                 {% else %}
                     <td colspan=3>Nothing to show!</td>
                 {% endfor %}
+
+<!--                 {% for name in ["You", i] %}
+                    <tr class="">
+                        <td></td>
+                        <td>{{ name }} borrowed {{ data[i]["currency"] }}<input type="text" class="amount" placeholder="Amount" /></td>
+                        <td><input type="text" class="comment" placeholder="Comment" /></td>
+                    </tr>
+                {% endfor %} -->
+
             </table>
+
+            <p>
+                <button class="save-button" data-id="{{ loop.index }}" id="save-button{{ loop.index }}">Save</button>
+            </p>
 
         {% endfor %}
 
     </div>
 
     <script type="text/javascript">
-        var tables = document.getElementsByClassName("trans-table");
-        var addButtons = document.getElementsByClassName("add-button");
 
         var addRow = function() {
             var id = this.getAttribute("data-id");
+            var borrower = this.getAttribute("data-borrower");
 
-            // Find the table with the same ID as this button
-            for (var i=0; i<tables.length; i++) {
-                if (tables[i].getAttribute("data-id") === id) {
-                    var borrower = this.getAttribute("data-borrower");
+            var date = new Date();
+            var day = date.getDate();
+            var month = date.getMonth() + 1;
+            var year = date.getFullYear().toString().slice(2);
+            // Pad with 0s if necessary
+            if (day < 10) day = "0" + day;
+            if (month < 10) month = "0" + month;
+            var formattedDate = day + "/" + month + "/" + year;
 
-                    var date = new Date();
-                    var day = date.getDate();
-                    var month = date.getMonth() + 1;
-                    var year = date.getFullYear().toString().slice(2);
-                    // Pad with 0s if necessary
-                    if (day < 10) day = "0" + day;
-                    if (month < 10) month = "0" + month;
-                    var formattedDate = day + "/" + month + "/" + year;
+            var row = document.createElement("tr");
+            row.className = "new-transaction";
+            row.setAttribute("data-borrower", borrower);
+            row.innerHTML = `
+                <td>${formattedDate}</td>
+                <td>${borrower} borrowed <input type="text" placeholder="Amount" class="amount" /></td>
+                <td><input type="text" placeholder="Comment" class="comment" /></td>
+            `;
 
-                    var row = document.createElement("tr");
-                    row.innerHTML = `
-                        <td>${formattedDate}</td>
-                        <td>${borrower} borrowed <input type="number" placeholder="Amount" class="amount" /></td>
-                        <td><input type="text" placeholder="Comment" class="comment" /></td>
-                    `;
+            document.getElementById("table" + id).appendChild(row);
 
-                    tables[i].appendChild(row);
-                }
-            }
+            // Show save button
+            document.getElementById("save-button" + id).style.display = "inline-block";
         }
 
+        var addButtons = document.getElementsByClassName("add-button");
         for (var i=0; i<addButtons.length; i++) {
             addButtons[i].onclick = addRow;
         }
+
+        var saveTable = function() {
+            var id = this.getAttribute("data-id");
+            var table = document.getElementById("table" + id);
+            var newRows = table.getElementsByClassName("new-transaction");
+
+            var data = [];
+            for (var i=0; i<newRows.length; i++) {
+                // Check that amount is a number
+                var amount = newRows[i].getElementsByClassName("amount")[0];
+                if (amount.value - 0 != amount.value) {
+                    amount.className += " error";
+                    return false;
+                }
+
+                var borrower = newRows[i].getAttribute("data-borrower");
+                if (borrower === "You") {
+                    borrower = "{{ username }}";
+                }
+
+                var comment = newRows[i].getElementsByClassName("comment")[0];
+                data.push({
+                    "timestamp": Date.now(),
+                    "amount": amount.value,
+                    "comment": comment.value,
+                    "borrower": borrower
+                })
+
+                console.log(data[i]);
+            }
+        }
+
+        var saveButtons = document.getElementsByClassName("save-button");
+        for (var i=0; i<saveButtons.length; i++) {
+            saveButtons[i].onclick = saveTable;
+        }
+
     </script>
 </body>
 

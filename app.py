@@ -64,14 +64,14 @@ def home():
         # Work out the amount owed to the user
         data[person]["owed"] = 0
         for i, t in enumerate(row["value"]["transactions"]):
-            sign = 1 if t["lender"] == session["username"] else -1
+            sign = -1 if t["borrower"] == session["username"] else 1
             data[person]["owed"] += sign * t["amount"]
 
             # Format date so it can be displayed nicely in template
             date = datetime.fromtimestamp(t["timestamp"])
             data[person]["transactions"][i]["formatted_date"] = format(date, "%d/%m/%y")
 
-    return render_template("list.html", data=data)
+    return render_template("list.html", data=data, username=session["username"])
 
 
 @app.route("/login/")
