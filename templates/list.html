@@ -90,9 +90,9 @@
 
                 <p>
                     {% if data[i]["owed"] > 0 %}
-                        {{ i }} owes you <span class="owed">{{ data[i]["currency"] }}{{ data[i]["owed"] }}</span>
+                        {{ i }} owes you <span class="owed">{{ data[i]["currency"] }}{{ format_money(data[i]["owed"]) }}</span>
                     {% elif data[i]["owed"] < 0 %}
-                        You owe {{ i }} <span class="debt">{{ data[i]["currency"] }}{{ -data[i]["owed"] }}</span>
+                        You owe {{ i }} <span class="debt">{{ data[i]["currency"] }}{{ format_money(-data[i]["owed"]) }}</span>
                     {% else %}
                         You and {{ i }} are even
                     {% endif %}
@@ -101,6 +101,11 @@
                 <p>
                     <button onclick="addRow({{ loop.index }}, 'You')">I borrowed</button>
                     <button onclick="addRow({{ loop.index }}, '{{ i }}')">{{ i }} borrowed</button>
+                    <button class="save-button" id="save-button{{ loop.index }}" onclick="save({{ loop.index }})">Save</button>
+                </p>
+
+                <p style="display: none;" id="error{{ loop.index }}">
+                    Error saving :(
                 </p>
 
                 <table class="trans-table" id="table{{ loop.index }}">
@@ -119,9 +124,9 @@
                                 <td>{{ t["formatted_date"] }}</td>
                                 <td>
                                     {% if t["borrower"] == i %}
-                                        {{ i }} borrowed <span class="owed">{{ data[i]["currency"] }}{{ t["amount"] }}</span>
+                                        {{ i }} borrowed <span class="owed">{{ data[i]["currency"] }}{{ format_money(t["amount"]) }}</span>
                                     {% else %}
-                                        You borrowed <span class="debt">{{ data[i]["currency"] }}{{ t["amount"] }}</span>
+                                        You borrowed <span class="debt">{{ data[i]["currency"] }}{{ format_money(t["amount"]) }}</span>
                                     {% endif %}
                                 </td>
                                 <td>{{ t["comment"] }}</td>
@@ -132,11 +137,6 @@
 
                     </tbody>
                 </table>
-
-                <p>
-                    <button class="save-button" id="save-button{{ loop.index }}" onclick="save({{ loop.index }})">Save</button>
-                </p>
-
             </div>
 
         {% endfor %}
@@ -169,9 +169,16 @@
 
             row.innerHTML = `
                 <td>${formattedDate}</td>
-                <td>${borrower} borrowed <input type="number" placeholder="Amount" class="amount" onfocus="this.className='amount';" /></td>
+                <td>${borrower} borrowed <input type="number" placeholder="Amount" class="amount" onfocus="this.className='amount';" min="0.01" step="0.01" /></td>
                 <td><input type="text" placeholder="Comment" class="comment" onfocus="this.className='comment';" /></td>
             `;
+
+            row.getElementsByClassName("comment")[0].onkeypress = function(e) {
+                // Save when enter is pressed in comment box
+                if (e.keyCode === 13) {
+                    save(id);
+                }
+            }
 
             // Put the new row at the TOP of the table
             var firstRow = tbody.getElementsByTagName("tr")[0];
@@ -195,9 +202,10 @@
 
             for (var i=0; i<newRows.length; i++) {
 
-                // Check that amount is a number
+                // Check that amount is a positive number with no more than 2dp
                 var amount = newRows[i].getElementsByClassName("amount")[0];
-                if (amount.value === "" || amount.value - 0 != amount.value) {
+                if (amount.value === "" || amount.value - 0 != amount.value
+                    || amount.value <= 0 || amount.value.match(/\.\d{3}/)) {
                     amount.className += " error";
                     error = true;
                 }
@@ -221,6 +229,7 @@
 
             if (!error) {
                 var req = new XMLHttpRequest();
+                req.iouId = id;
                 req.addEventListener("load", reqListener);
                 req.open("POST", "/save/");
                 req.setRequestHeader("content-type", "application/json");
@@ -234,7 +243,7 @@
                     document.location.reload(true);
                     break;
                 case 500:
-                    console.log("Error!");
+                    document.getElementById("error" + this.iouId).style.display = "block";
                     break;
             }
         }

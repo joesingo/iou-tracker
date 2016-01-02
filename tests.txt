@@ -14,4 +14,6 @@ Tests:
 - Button click => new rows are added to TOP of table, and borrower is correct
 - Leave amount blank and press save => error
 - Enter non-number in amount box and press save => error
+- Enter negative number or 0 in amount box => error
+- Enter a number with more than 2 decimal places => error
 - Leave comment blank => error

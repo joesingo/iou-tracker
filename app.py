@@ -1,4 +1,4 @@
-import json
+import json, re
 from datetime import datetime
 
 from flask import Flask, session, redirect, render_template, request, abort
@@ -71,11 +71,15 @@ def home():
             date = datetime.fromtimestamp(t["timestamp"])
             data[person]["transactions"][i]["formatted_date"] = format(date, "%d/%m/%y")
 
-    return render_template("list.html", data=data, username=session["username"])
+        # Sort by date - newest first
+        data[person]["transactions"].sort(key=lambda x: -x["timestamp"])
+
+    return render_template("list.html", data=data, username=session["username"],
+                           format_money=format_money)
+
 
 @app.route("/save/", methods=["POST"])
 def save():
-    # abort(500)
     req = request.json
 
     # Get the document
@@ -128,6 +132,17 @@ def logout():
     if "username" in session:
         del session["username"]
     return redirect("/login/")
+
+
+def format_money(n):
+    """
+    Convert n to a string and add an extra 0 on the end if necessary
+    """
+    s = str(n)
+    if re.search("\.\d$", s):
+        s += "0"
+
+    return s
 
 
 app.secret_key = "\xf2%Z\xfa\\0\xd0\xb5\x8e9\x87\xea\xa4{\x8es"
