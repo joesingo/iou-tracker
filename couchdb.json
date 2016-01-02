@@ -1,9 +1,12 @@
 {
    "_id": "_design/iou",
-   "_rev": "1-b6142dbf627136799d5edbd50002d797",
+   "_rev": "3-278589b53411d8de5da412de1b03cf57",
    "views": {
        "getious": {
            "map": "function(doc){if (doc.people && doc.people.length == 2){emit(doc.people[0], doc);emit(doc.people[1], doc);}}"
+       },
+       "getiou": {
+           "map": "function(doc){if (doc.people && doc.people.length == 2){emit([doc.people[0], doc.people[1]], doc);emit([doc.people[1], doc.people[0]], doc);}}"
        }
    }
 }
