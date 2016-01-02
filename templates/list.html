@@ -1,147 +1,111 @@
-<!DOCTYPE html>
-<html>
+{% extends "base.html" %}
 
-<head>
+{% block title %}
+    IOU Tracker - Home
+{% endblock %}
 
-    <style type="text/css">
-        * {
-            box-sizing: border-box;
-        }
-        body {
-            font-family: "Verdana", sans-serif;
-            background: #8C3A32;
-            margin: 0;
-            min-height: 100%;
-            text-align: center;
-        }
-        html {
-            height: 100%;
-        }
-        #content {
-            margin: auto;
-            display: inline-block;
-            min-width: 400px;
-            height: 100%;
-            background: white;
-            padding: 30px;
-            text-align: left;
-        }
-        header a {
-            font-size: 0.75em;
-            color: inherit;
-        }
-        .trans-table {
-            border-collapse: collapse;
-        }
-        .trans-table td, .trans-table th {
-            border: 2px solid black;
-            padding: 7px 15px;
-            text-align: center;
-        }
-        .trans-table .amount, .trans-table .comment {
-            padding: 4px;
-        }
-        .trans-table .amount {
-            width: 6em;
-        }
-        .trans-table .comment {
-            width: 15em;
-        }
-        button {
-            background: #F29D52;
-            color: white;
-            padding: 8px 15px;
-            outline: none;
-            border: none;
-            margin-right: 10px;
-        }
-        button:hover {
-            background: #D97E4A;
-        }
-        .save-button {
-            display: none;
-        }
-        .owed {
-            color: green;
-        }
-        .debt {
-            color: red;
-        }
-        .error {
-            border: 2px solid red;
-        }
+{% block extra_style %}
+    .trans-table {
+        border-collapse: collapse;
+    }
+    .trans-table td, .trans-table th {
+        border: 2px solid black;
+        padding: 7px 15px;
+        text-align: center;
+    }
+    .trans-table .amount {
+        width: 6em;
+    }
+    .trans-table .comment {
+        width: 15em;
+    }
+    .iou button {
+        margin-right: 10px;
+    }
+    .save-button {
+        display: none;
+    }
+    .owed {
+        color: green;
+    }
+    .debt {
+        color: red;
+    }
+    .error {
+        border: 2px solid red;
+    }
+{% endblock %}
 
-    </style>
+{% block h1_title %}
+    IOU Tracker
+{% endblock %}
 
-</head>
+{% block extra_header %}
+    <p><a href="/logout/">Logout</a></p>
+{% endblock %}
 
-<body>
-    <div id="content">
+{% block extra_content %}
 
-        <header>
-            <h1>IOU tracker</h1>
-            <p><a href="/logout/">Logout</a></p>
-        </header>
+    {% for i in data %}
+        <div class="iou" id="iou{{ loop.index }}" data-person="{{ i }}">
+            <h2>{{ i }}</h2>
 
+            <p>
+                {% if data[i]["owed"] > 0 %}
+                    {{ i }} owes you <span class="owed">{{ data[i]["currency"] }}{{ format_money(data[i]["owed"]) }}</span>
+                {% elif data[i]["owed"] < 0 %}
+                    You owe {{ i }} <span class="debt">{{ data[i]["currency"] }}{{ format_money(-data[i]["owed"]) }}</span>
+                {% else %}
+                    You and {{ i }} are even
+                {% endif %}
+            </p>
 
-        {% for i in data %}
-            <div class="iou" id="iou{{ loop.index }}" data-person="{{ i }}">
-                <h2>{{ i }}</h2>
+            <p>
+                <button onclick="addRow({{ loop.index }}, 'You')">I borrowed</button>
+                <button onclick="addRow({{ loop.index }}, '{{ i }}')">{{ i }} borrowed</button>
+                <button class="save-button" id="save-button{{ loop.index }}" onclick="save({{ loop.index }})">Save</button>
+            </p>
 
-                <p>
-                    {% if data[i]["owed"] > 0 %}
-                        {{ i }} owes you <span class="owed">{{ data[i]["currency"] }}{{ format_money(data[i]["owed"]) }}</span>
-                    {% elif data[i]["owed"] < 0 %}
-                        You owe {{ i }} <span class="debt">{{ data[i]["currency"] }}{{ format_money(-data[i]["owed"]) }}</span>
-                    {% else %}
-                        You and {{ i }} are even
-                    {% endif %}
-                </p>
+            <p style="display: none;" id="error{{ loop.index }}">
+                Error saving :(
+            </p>
 
-                <p>
-                    <button onclick="addRow({{ loop.index }}, 'You')">I borrowed</button>
-                    <button onclick="addRow({{ loop.index }}, '{{ i }}')">{{ i }} borrowed</button>
-                    <button class="save-button" id="save-button{{ loop.index }}" onclick="save({{ loop.index }})">Save</button>
-                </p>
+            <table class="trans-table" id="table{{ loop.index }}">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Amount</th>
+                        <th>Comment</th>
+                    </tr>
+                </thead>
 
-                <p style="display: none;" id="error{{ loop.index }}">
-                    Error saving :(
-                </p>
+                <tbody>
 
-                <table class="trans-table" id="table{{ loop.index }}">
-                    <thead>
+                    {% for t in data[i]["transactions"] %}
                         <tr>
-                            <th>Date</th>
-                            <th>Amount</th>
-                            <th>Comment</th>
+                            <td>{{ t["formatted_date"] }}</td>
+                            <td>
+                                {% if t["borrower"] == i %}
+                                    {{ i }} borrowed <span class="owed">{{ data[i]["currency"] }}{{ format_money(t["amount"]) }}</span>
+                                {% else %}
+                                    You borrowed <span class="debt">{{ data[i]["currency"] }}{{ format_money(t["amount"]) }}</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ t["comment"] }}</td>
                         </tr>
-                    </thead>
+                    {% else %}
+                        <td colspan=3>Nothing to show!</td>
+                    {% endfor %}
 
-                    <tbody>
+                </tbody>
+            </table>
+        </div>
 
-                        {% for t in data[i]["transactions"] %}
-                            <tr>
-                                <td>{{ t["formatted_date"] }}</td>
-                                <td>
-                                    {% if t["borrower"] == i %}
-                                        {{ i }} borrowed <span class="owed">{{ data[i]["currency"] }}{{ format_money(t["amount"]) }}</span>
-                                    {% else %}
-                                        You borrowed <span class="debt">{{ data[i]["currency"] }}{{ format_money(t["amount"]) }}</span>
-                                    {% endif %}
-                                </td>
-                                <td>{{ t["comment"] }}</td>
-                            </tr>
-                        {% else %}
-                            <td colspan=3>Nothing to show!</td>
-                        {% endfor %}
+    {% endfor %}
 
-                    </tbody>
-                </table>
-            </div>
+{% endblock %}
 
-        {% endfor %}
-
-    </div>
+{% block extra_body %}
 
     <script type="text/javascript">
 
@@ -249,6 +213,4 @@
         }
 
     </script>
-</body>
-
-</html>
+{% endblock %}

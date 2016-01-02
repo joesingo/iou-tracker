@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+
+    <style type="text/css">
+        * {
+            box-sizing: border-box;
+        }
+        body {
+            font-family: "Verdana", sans-serif;
+            background: #8C3A32;
+            margin: 0;
+            min-height: 100%;
+            text-align: center;
+        }
+        html {
+            height: 100%;
+        }
+        #content {
+            margin: auto;
+            display: inline-block;
+            min-width: 400px;
+            height: 100%;
+            background: white;
+            padding: 30px;
+            text-align: left;
+        }
+        header a {
+            font-size: 0.75em;
+            color: inherit;
+        }
+        button {
+            background: #F29D52;
+            color: white;
+            padding: 8px 15px;
+            outline: none;
+            border: none;
+        }
+        button:hover {
+            background: #D97E4A;
+        }
+
+        input {
+            padding: 4px;
+        }
+
+        {% block extra_style %}
+        {% endblock %}
+
+    </style>
+
+    <title>{% block title %}{% endblock %}</title>
+
+</head>
+
+<body>
+    <div id="content">
+
+        <header>
+            <h1>{% block h1_title %}{% endblock %}</h1>
+            {% block extra_header %}{% endblock %}
+        </header>
+
+        {% block extra_content %}
+        {% endblock %}
+
+    </div>
+
+    {% block extra_body %}{% endblock %}
+
+</body>
+
+</html>
