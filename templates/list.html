@@ -85,7 +85,7 @@
 
 
         {% for i in data %}
-            <div class="iou" data-person="{{ i }}">
+            <div class="iou" id="iou{{ loop.index }}" data-person="{{ i }}">
                 <h2>{{ i }}</h2>
 
                 <p>
@@ -169,7 +169,7 @@
 
             row.innerHTML = `
                 <td>${formattedDate}</td>
-                <td>${borrower} borrowed <input type="text" placeholder="Amount" class="amount" onfocus="this.className='amount';" /></td>
+                <td>${borrower} borrowed <input type="number" placeholder="Amount" class="amount" onfocus="this.className='amount';" /></td>
                 <td><input type="text" placeholder="Comment" class="comment" onfocus="this.className='comment';" /></td>
             `;
 
@@ -179,13 +179,18 @@
 
             // Show save button
             document.getElementById("save-button" + id).style.display = "inline-block";
+
+            row.getElementsByClassName("amount")[0].focus();
         }
 
         var save = function(id) {
             var table = document.getElementById("table" + id);
             var newRows = table.getElementsByClassName("new-transaction");
 
-            var data = [];
+            var data = {
+                "person": document.getElementById("iou" + id).getAttribute("data-person"),
+                "transactions": []
+            };
             var error = false;
 
             for (var i=0; i<newRows.length; i++) {
@@ -206,8 +211,8 @@
                     error = true;
                 }
 
-                data.push({
-                    "timestamp": Date.now(),
+                data["transactions"].push({
+                    "timestamp": Date.now() / 1000,
                     "comment": comment.value,
                     "amount": amount.value,
                     "borrower": borrower
@@ -215,7 +220,22 @@
             }
 
             if (!error) {
-                console.log(data);
+                var req = new XMLHttpRequest();
+                req.addEventListener("load", reqListener);
+                req.open("POST", "/save/");
+                req.setRequestHeader("content-type", "application/json");
+                req.send(JSON.stringify(data));
+            }
+        }
+
+        var reqListener = function() {
+            switch (this.status) {
+                case 200:
+                    document.location.reload(true);
+                    break;
+                case 500:
+                    console.log("Error!");
+                    break;
             }
         }
 

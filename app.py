@@ -1,7 +1,7 @@
 import json
 from datetime import datetime
 
-from flask import Flask, session, redirect, render_template, request
+from flask import Flask, session, redirect, render_template, request, abort
 import requests
 
 from passwd import PASSWORDS
@@ -72,6 +72,35 @@ def home():
             data[person]["transactions"][i]["formatted_date"] = format(date, "%d/%m/%y")
 
     return render_template("list.html", data=data, username=session["username"])
+
+@app.route("/save/", methods=["POST"])
+def save():
+    # abort(500)
+    req = request.json
+
+    # Get the document
+    res = requests.get(DB_URL + "_design/iou/_view/getiou/?key=[\"{}\",\"{}\"]" \
+                                 .format(session["username"], req["person"]))
+
+    content = json.loads(res.content)
+
+    if "error" in content or len(content["rows"]) != 1:
+        abort(500)
+
+    doc = content["rows"][0]["value"]
+
+    for t in req["transactions"]:
+        # TODO: Validate transactions
+        t["amount"] = float(t["amount"])
+        doc["transactions"].append(t)
+
+    # Put new doc in DB
+    res = requests.put(DB_URL + doc["_id"], data=json.dumps(doc))
+    content = json.loads(res.content)
+    if "error" in content:
+        abort(500)
+    else:
+        return "woohoo"
 
 
 @app.route("/login/")
