@@ -32,6 +32,9 @@
     .trans-table .comment {
         width: 15em;
     }
+    .trans-table .date-dropdown {
+        padding: 3px;
+    }
     .iou button {
         margin-right: 10px;
     }
@@ -122,17 +125,16 @@
 
     <script type="text/javascript">
 
-        var addRow = function(id, borrower) {
+        var padWithZeros = function(str, width) {
+            // Add "0"s to the front of str until it is 'width' chars long
+            var n = width - str.length;
+            for (var i=0; i<n; i++) {
+                str = "0" + str;
+            }
+            return str;
+        }
 
-            // Get date
-            var date = new Date();
-            var day = date.getDate();
-            var month = date.getMonth() + 1;
-            var year = date.getFullYear().toString().slice(2);
-            // Pad with 0s if necessary
-            if (day < 10) day = "0" + day;
-            if (month < 10) month = "0" + month;
-            var formattedDate = day + "/" + month + "/" + year;
+        var addRow = function(id, borrower) {
 
             var table = document.getElementById("table" + id);
             var tbody = table.getElementsByTagName("tbody")[0];
@@ -145,7 +147,11 @@
             row.setAttribute("class", "new-transaction");
 
             row.innerHTML = `
-                <td>${formattedDate}</td>
+                <td>
+                    <select class="date-dropdown day-dropdown"></select>
+                    <select class="date-dropdown month-dropdown"></select>
+                    <select class="date-dropdown year-dropdown"></select>
+                </td>
                 <td>${borrower} borrowed <input type="number" placeholder="Amount" class="amount" onfocus="this.className='amount';" min="0.01" step="0.01" /></td>
                 <td>
                     <input type="text" placeholder="Comment" class="comment" onfocus="this.className='comment';" />
@@ -163,6 +169,33 @@
             // Put the new row at the TOP of the table
             var firstRow = tbody.getElementsByTagName("tr")[0];
             tbody.insertBefore(row, firstRow);
+
+            // Populate the date chooser dropdowns
+            var dayDropdown = row.getElementsByClassName("day-dropdown")[0];
+            var monthDropdown = row.getElementsByClassName("month-dropdown")[0];
+            var yearDropdown = row.getElementsByClassName("year-dropdown")[0];
+            var date = new Date();
+            var currentYear = date.getFullYear().toString().slice(2);
+
+            for (var i=1; i<=31; i++) {
+                dayDropdown.innerHTML += `
+                    <option value='${i}' ${i == date.getDate() ? "selected": ""}>
+                        ${padWithZeros(i.toString(), 2)}
+                    </option>
+                `;
+            }
+            for (var i=1; i<=12; i++) {
+                monthDropdown.innerHTML += `
+                    <option value='${i}' ${i == date.getMonth() + 1 ? "selected": ""}>
+                        ${padWithZeros(i.toString(), 2)}
+                    </option>
+                `;
+            }
+
+            for (var i=0; i<=5; i++) {
+                var year = currentYear - i;
+                yearDropdown.innerHTML += `<option value='${year}'>${year}</option>`;
+            }
 
             // Show save button
             document.getElementById("save-button" + id).style.display = "inline-block";
@@ -199,8 +232,17 @@
                     error = true;
                 }
 
+                // Build Date object
+                var day = newRows[i].getElementsByClassName("day-dropdown")[0].value;
+                var month = newRows[i].getElementsByClassName("month-dropdown")[0].value;
+                var year = newRows[i].getElementsByClassName("year-dropdown")[0].value;
+                day = parseInt(day, 10);
+                month = parseInt(month, 10);
+                year = parseInt(year, 10);
+                var date = new Date(year + 2000, month - 1, day);
+
                 data["transactions"].push({
-                    "timestamp": Date.now() / 1000,
+                    "timestamp": date.getTime() / 1000,
                     "comment": comment.value,
                     "amount": amount.value,
                     "borrower": borrower
