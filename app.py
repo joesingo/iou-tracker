@@ -80,6 +80,10 @@ def home():
 
 @app.route("/save/", methods=["POST"])
 def save():
+    """
+    Take a JSON object containing new transactions to be saved and append them
+    to the doc in the DB
+    """
     req = request.json
 
     # Get the document

@@ -20,6 +20,12 @@
     .trans-table tbody tr:hover {
         background: #ECF0F1;
     }
+    .trans-table .loading-gif {
+        float: right;
+        display: none;
+        height: 30px;
+        margin-left: 10px;
+    }
     .trans-table .amount {
         width: 6em;
     }
@@ -141,7 +147,10 @@
             row.innerHTML = `
                 <td>${formattedDate}</td>
                 <td>${borrower} borrowed <input type="number" placeholder="Amount" class="amount" onfocus="this.className='amount';" min="0.01" step="0.01" /></td>
-                <td><input type="text" placeholder="Comment" class="comment" onfocus="this.className='comment';" /></td>
+                <td>
+                    <input type="text" placeholder="Comment" class="comment" onfocus="this.className='comment';" />
+                    <img class="loading-gif" src='{{ url_for("static", filename="saving.gif") }}' alt='Saving' />
+                </td>
             `;
 
             row.getElementsByClassName("comment")[0].onkeypress = function(e) {
@@ -205,6 +214,12 @@
                 req.open("POST", "/save/");
                 req.setRequestHeader("content-type", "application/json");
                 req.send(JSON.stringify(data));
+
+                for (var i=0; i<newRows.length; i++) {
+                    var comment = newRows[i].getElementsByClassName("comment")[0];
+                    var image = comment.parentElement.getElementsByClassName("loading-gif")[0];
+                    image.style.display = "inline";
+                }
             }
         }
 
