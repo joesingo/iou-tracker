@@ -115,6 +115,16 @@
 
                 </tbody>
             </table>
+
+            <p>
+                In total you have borrowed <span class="debt">
+                {{ data[i]["currency"] }}{{ data[i]["total_borrowed"] }}
+                </span>,
+                and {{ i }} has borrowed <span class="owed">
+                {{ data[i]["currency"] }}{{ data[i]["total_owed"] }}
+                </span>
+            </p>
+
         </div>
 
     {% endfor %}

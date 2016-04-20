@@ -63,9 +63,16 @@ def home():
 
         # Work out the amount owed to the user
         data[person]["owed"] = 0
+        data[person]["total_borrowed"] = 0
+        data[person]["total_owed"] = 0
         for i, t in enumerate(row["value"]["transactions"]):
             sign = -1 if t["borrower"] == session["username"] else 1
             data[person]["owed"] += sign * t["amount"]
+
+            if t["borrower"] == session["username"]:
+                data[person]["total_borrowed"] += t["amount"]
+            else:
+                data[person]["total_owed"] += t["amount"]
 
             # Format date so it can be displayed nicely in template
             date = datetime.fromtimestamp(t["timestamp"])
