@@ -1,4 +1,4 @@
-#!/bin/fish
+#!/usr/bin/fish
 set db_url "http://localhost:5984/iou"
 
 # Create database
