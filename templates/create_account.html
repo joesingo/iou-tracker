@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+
+{% block title %}
+    IOU Tracker - Create account
+{% endblock %}
+
+{% block extra_style %}
+    form {
+        text-align: center;
+    }
+{% endblock %}
+
+
+{% block h1_title %}
+    IOU Tracker - Create account
+{% endblock %}
+
+{% block extra_content %}
+    <form onsubmit="return validate();" action="" method="POST">
+        {% if error_msg %}
+        <p>{{ error_msg }}</p>
+        {% endif %}
+
+        <p><input type="text" placeholder="New username" name="username" /></p>
+        <p><input type="password" placeholder="New password" name="password"></p>
+        <p><input type="password" placeholder="Repeat password" name="password2"></p>
+        <p><button>Create account</button></p>
+    </form>
+
+    <script type="text/javascript">
+
+        function addClass(element, className) {
+            // Add the specified class to the given element
+            var classes = element.className.split(" ");
+            if (classes.indexOf(className) === -1) {
+                classes.push(className);
+            }
+            element.className = classes.join(" ");
+        }
+
+        function removeClass(element, className) {
+            // Remove the specified class from the given element
+            var classes = element.className.split(" ");
+            var index = classes.indexOf(className);
+            if (index !== -1) {
+                classes.splice(index, 1);
+            }
+            element.className = classes.join(" ");
+        }
+
+        function validate() {
+            var error = false;
+
+            var username = document.querySelector("[name=username]");
+            var password = document.querySelector("[name=password]");
+            var password2 = document.querySelector("[name=password2]");
+
+            // Check textboxes are not empty
+            var textboxes = [username, password, password2];
+            for (var i=0; i<textboxes.length; i++) {
+                removeClass(textboxes[i], "error");
+
+                if (textboxes[i].value === "") {
+                    addClass(textboxes[i], "error");
+                    error = true;
+                }
+            }
+
+            // Check passwords match
+            if (password.value !== password2.value) {
+                addClass(password, "error");
+                addClass(password2, "error");
+                error = true;
+            }
+
+            return !error;
+        }
+    </script>
+{% endblock %}
+

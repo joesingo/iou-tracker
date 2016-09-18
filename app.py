@@ -1,13 +1,14 @@
+from passlib.hash import pbkdf2_sha256
 import json, re
 from datetime import datetime
 
 from flask import Flask, session, redirect, render_template, request, abort
 import requests
 
-from passwd import PASSWORDS
-
 BASE_DB_URL = "http://localhost:5984/"
 DB_URL = BASE_DB_URL + "iou/"
+
+PASSWORDS_FILE = "passwd.json"
 
 app = Flask(__name__)
 
@@ -128,14 +129,48 @@ def login():
     if "username" not in request.form or "password" not in request.form:
         return login_form()
     else:
-        if request.form["username"] in PASSWORDS and \
-             PASSWORDS[request.form["username"]] == request.form["password"]:
+        with open(PASSWORDS_FILE) as passwords_file:
+            password_store = json.load(passwords_file)
 
-            #Login was successful
-            session["username"] = request.form["username"]
-            return redirect("/")
-        else:
-            return login_form(login_error=True)
+            if request.form["username"] in password_store:
+                password_hash = password_store[request.form["username"]]
+                if pbkdf2_sha256.verify(request.form["password"], password_hash):
+                    #Login was successful
+                    session["username"] = request.form["username"]
+                    return redirect("/")
+
+    return login_form(login_error=True)
+
+
+@app.route("/create-account/", methods=["GET"])
+def create_account_form(error_msg=None):
+    return render_template("create_account.html", error_msg=error_msg)
+
+
+@app.route("/create-account/", methods=["POST"])
+def create_account():
+    if "username" not in request.form or "password" not in request.form:
+        return create_account_form()
+
+    with open(PASSWORDS_FILE, "r") as passwords_file:
+        password_store = json.load(passwords_file)
+
+    # Check there is not already a user with this username
+    if request.form["username"] in password_store:
+        message = "Username '{}' is already in use".format(request.form["username"])
+        return create_account_form(error_msg=message)
+
+    # Add user to the JSON file
+    hashed_password = pbkdf2_sha256.encrypt(request.form["password"],
+                                            rounds=2000, salt_size=16)
+    password_store[request.form["username"]] = hashed_password
+
+    with open(PASSWORDS_FILE, "w") as passwords_file:
+        json.dump(password_store, passwords_file)
+
+    # Log in as newly created user
+    session["username"] = request.form["username"]
+    return home()
 
 
 @app.route("/logout/")
@@ -159,4 +194,4 @@ def format_money(n):
 app.secret_key = "\xf2%Z\xfa\\0\xd0\xb5\x8e9\x87\xea\xa4{\x8es"
 
 if __name__ == "__main__":
-    app.run(debug=False, host="0.0.0.0", port=80)
+    app.run(debug=False, host="0.0.0.0", port=7000)
