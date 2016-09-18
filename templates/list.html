@@ -248,6 +248,20 @@
                 year = parseInt(year, 10);
                 var date = new Date(year + 2000, month - 1, day);
 
+                var now = new Date();
+                if (date.getFullYear() === now.getFullYear() &&
+                    date.getMonth() === now.getMonth() &&
+                    date.getDate() === now.getDate()) {
+
+                    // If the date is today then set the time to the current time
+                    date = now;
+                }
+                else {
+                    // If date is not today then set time to 23:59
+                    date.setHours(23);
+                    date.setMinutes(59);
+                }
+
                 data["transactions"].push({
                     "timestamp": date.getTime() / 1000,
                     "comment": comment.value,
