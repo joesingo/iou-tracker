@@ -1,34 +1,13 @@
-from passlib.hash import pbkdf2_sha256
-import json, re
+import re
 from datetime import datetime
 
 from flask import Flask, session, redirect, render_template, request, abort
-import requests
 
-BASE_DB_URL = "http://localhost:5984/"
-DB_URL = BASE_DB_URL + "iou/"
-
-PASSWORDS_FILE = "passwd.json"
+from iou import IOUApp, Statement, Transaction
+from exceptions import DuplicateUsernameError
 
 app = Flask(__name__)
-
-def create_iou(a, b):
-    """
-    Create a new IOU doc for persons a and b and save in DB. Return True if
-    successful, False if not
-    """
-    doc = {}
-    doc["people"] = [a, b]
-    doc["transactions"] = []
-    doc["currency"] = u"\xA3"
-
-    res = requests.get(BASE_DB_URL + "_uuids")
-    uuid = json.loads(res.content)["uuids"][0]
-
-    res = requests.put(DB_URL + uuid, data=json.dumps(doc))
-    content = json.loads(res.content)
-
-    return "error" not in content
+iou_app = IOUApp()
 
 
 def is_logged_in():
@@ -44,47 +23,15 @@ def home():
     if not is_logged_in():
         return redirect("/login/")
 
-    res = requests.get(DB_URL + "_design/iou/_view/getious/?key=\"{}\"" \
-                                .format(session["username"]))
-
-    content = json.loads(res.content)
-
-    if "error" in content:
-        abort(500)
-
     data = {}
-
-    for row in content["rows"]:
-        # Get the username of the other person
-        names = row["value"]["people"]
-        names.remove(session["username"])
-        person = names[0]
-
-        data[person] = row["value"]
-
-        # Work out the amount owed to the user
-        data[person]["owed"] = 0
-        data[person]["total_borrowed"] = 0
-        data[person]["total_owed"] = 0
-        for i, t in enumerate(row["value"]["transactions"]):
-            sign = -1 if t["borrower"] == session["username"] else 1
-            data[person]["owed"] += sign * t["amount"]
-
-            if t["borrower"] == session["username"]:
-                data[person]["total_borrowed"] += t["amount"]
-            else:
-                data[person]["total_owed"] += t["amount"]
-
-            # Format date so it can be displayed nicely in template
-            date = datetime.fromtimestamp(t["timestamp"])
-            data[person]["transactions"][i]["formatted_date"] = format(date, "%d/%m/%y")
-
-        # Sort by date - newest first
-        data[person]["transactions"].sort(key=lambda x: -x["timestamp"])
-
-    return render_template("list.html", data=data, username=session["username"],
-                           format_money=format_money)
-
+    user = session["username"]
+    for statement in iou_app.get_ious(user):
+        data[statement.other_person] = {
+            "owed": statement.owed,
+            "transactions": iou_app.get_transactions(user, statement.other_person)
+        }
+    return render_template("list.html", data=data, format_money=format_money,
+                           format_timestamp=format_timestamp, username=user)
 
 @app.route("/save/", methods=["POST"])
 def save():
@@ -92,32 +39,19 @@ def save():
     Take a JSON object containing new transactions to be saved and append them
     to the doc in the DB
     """
-    req = request.json
+    data = request.json
+    try:
+        t_list = map(lambda d: Transaction(**d), data["transactions"])
+    except KeyError:
+        abort(400)
 
-    # Get the document
-    res = requests.get(DB_URL + "_design/iou/_view/getiou/?key=[\"{}\",\"{}\"]" \
-                                 .format(session["username"], req["person"]))
 
-    content = json.loads(res.content)
-
-    if "error" in content or len(content["rows"]) != 1:
+    try:
+        iou_app.add_transactions(t_list)
+    except sqlite3.DatabaseError:
         abort(500)
 
-    doc = content["rows"][0]["value"]
-
-    for t in req["transactions"]:
-        # TODO: Validate transactions
-        t["amount"] = float(t["amount"])
-        doc["transactions"].append(t)
-
-    # Put new doc in DB
-    res = requests.put(DB_URL + doc["_id"], data=json.dumps(doc))
-    content = json.loads(res.content)
-    if "error" in content:
-        abort(500)
-    else:
-        return "woohoo"
-
+    return "success"
 
 @app.route("/login/")
 def login_form(login_error=False):
@@ -128,18 +62,13 @@ def login_form(login_error=False):
 def login():
     if "username" not in request.form or "password" not in request.form:
         return login_form()
-    else:
-        with open(PASSWORDS_FILE) as passwords_file:
-            password_store = json.load(passwords_file)
 
-            if request.form["username"] in password_store:
-                password_hash = password_store[request.form["username"]]
-                if pbkdf2_sha256.verify(request.form["password"], password_hash):
-                    #Login was successful
-                    session["username"] = request.form["username"]
-                    return redirect("/")
+    if not iou_app.authenticate_user(request.form["username"],
+                                     request.form["password"]):
+        return login_form(login_error=True)
 
-    return login_form(login_error=True)
+    session["username"] = request.form["username"]
+    return redirect("/")
 
 
 @app.route("/create-account/", methods=["GET"])
@@ -152,33 +81,19 @@ def create_account():
     if "username" not in request.form or "password" not in request.form:
         return create_account_form()
 
-    with open(PASSWORDS_FILE, "r") as passwords_file:
-        password_store = json.load(passwords_file)
+    try:
+        iou_app.add_user(request.form["username"], request.form["password"])
+    except DuplicateUsernameError as ex:
+        return create_account_form(error_msg=str(ex))
 
-    # Check there is not already a user with this username
-    if request.form["username"] in password_store:
-        message = "Username '{}' is already in use".format(request.form["username"])
-        return create_account_form(error_msg=message)
-
-    # Add user to the JSON file
-    hashed_password = pbkdf2_sha256.encrypt(request.form["password"],
-                                            rounds=2000, salt_size=16)
-    password_store[request.form["username"]] = hashed_password
-
-    with open(PASSWORDS_FILE, "w") as passwords_file:
-        json.dump(password_store, passwords_file)
-
-    # Log in as newly created user
     session["username"] = request.form["username"]
-    return home()
-
+    return redirect("/")
 
 @app.route("/logout/")
 def logout():
     if "username" in session:
         del session["username"]
     return redirect("/login/")
-
 
 def format_money(n):
     """
@@ -190,6 +105,11 @@ def format_money(n):
 
     return s
 
+def format_timestamp(timestamp):
+    """
+    Return a string representation of a timestamp
+    """
+    return datetime.fromtimestamp(timestamp).strftime("%d/%m/%y")
 
 app.secret_key = "\xf2%Z\xfa\\0\xd0\xb5\x8e9\x87\xea\xa4{\x8es"
 

@@ -59,24 +59,30 @@
 
 {% block extra_content %}
 
-    {% for i in data %}
-        <div class="iou" id="iou{{ loop.index }}" data-person="{{ i }}">
-            <h2>{{ i }}</h2>
+    {% for other_person in data %}
+        <div class="iou" id="iou{{ loop.index }}" data-person="{{ other_person }}">
+            <h2>{{ other_person }}</h2>
 
             <p>
-                {% if data[i]["owed"] > 0 %}
-                    {{ i }} owes you <span class="owed">{{ data[i]["currency"] }}{{ format_money(data[i]["owed"]) }}</span>
-                {% elif data[i]["owed"] < 0 %}
-                    You owe {{ i }} <span class="debt">{{ data[i]["currency"] }}{{ format_money(-data[i]["owed"]) }}</span>
+                {% if data[other_person]["owed"] > 0 %}
+                    {{ other_person }} owes you
+                    <span class="owed">£{{ format_money(data[other_person]["owed"]) }}</span>
+                {% elif data[other_person]["owed"] < 0 %}
+                    You owe {{ other_person }}
+                    <span class="debt">£{{ format_money(-data[other_person]["owed"]) }}</span>
                 {% else %}
-                    You and {{ i }} are even
+                    You and {{ other_person }} are even
                 {% endif %}
             </p>
 
             <p>
                 <button onclick="addRow({{ loop.index }}, 'You')">I borrowed</button>
-                <button onclick="addRow({{ loop.index }}, '{{ i }}')">{{ i }} borrowed</button>
-                <button class="save-button" id="save-button{{ loop.index }}" onclick="save({{ loop.index }})">Save</button>
+                <button onclick="addRow({{ loop.index }}, '{{ other_person }}')">
+                    {{ other_person }} borrowed
+                </button>
+                <button class="save-button" id="save-button{{ loop.index }}" onclick="save({{ loop.index }})">
+                    Save
+                </button>
             </p>
 
             <p style="display: none;" id="error{{ loop.index }}">
@@ -94,14 +100,20 @@
 
                 <tbody>
 
-                    {% for t in data[i]["transactions"] %}
+                    {% for t in data[other_person]["transactions"] %}
                         <tr>
-                            <td>{{ t["formatted_date"] }}</td>
+                            <td>{{ format_timestamp(t["timestamp"]) }}</td>
                             <td>
-                                {% if t["borrower"] == i %}
-                                    {{ i }} borrowed <span class="owed">{{ data[i]["currency"] }}{{ format_money(t["amount"]) }}</span>
+                                {% if t["borrower"] == other_person %}
+                                    {{ other_person }} borrowed
+                                    <span class="owed">
+                                        £{{ format_money(t["amount"]) }}
+                                    </span>
                                 {% else %}
-                                    You borrowed <span class="debt">{{ data[i]["currency"] }}{{ format_money(t["amount"]) }}</span>
+                                    You borrowed
+                                    <span class="debt">
+                                        £{{ format_money(t["amount"]) }}
+                                    </span>
                                 {% endif %}
                             </td>
                             <td>{{ t["comment"] }}</td>
@@ -113,14 +125,15 @@
                 </tbody>
             </table>
 
-            <p>
-                In total you have borrowed <span class="debt">
-                {{ data[i]["currency"] }}{{ data[i]["total_borrowed"] }}
-                </span>,
-                and {{ i }} has borrowed <span class="owed">
-                {{ data[i]["currency"] }}{{ data[i]["total_owed"] }}
-                </span>
-            </p>
+            <!-- TODO: Re-instate this in new code -->
+            <!-- <p> -->
+            <!--     In total you have borrowed <span class="debt"> -->
+            <!--     £{{ data[other_person]["total_borrowed"] }} -->
+            <!--     </span>, -->
+            <!--     and {{ other_person }} has borrowed <span class="owed"> -->
+            <!--     £{{ data[other_person]["total_owed"] }} -->
+            <!--     </span> -->
+            <!-- </p> -->
 
         </div>
 
@@ -215,7 +228,6 @@
             var newRows = table.getElementsByClassName("new-transaction");
 
             var data = {
-                "person": document.getElementById("iou" + id).getAttribute("data-person"),
                 "transactions": []
             };
             var error = false;
@@ -262,11 +274,14 @@
                     date.setMinutes(59);
                 }
 
+                var otherPerson = document.getElementById("iou" + id).getAttribute("data-person");
+                var lender = (borrower === otherPerson ? "{{ username }}" : otherPerson);
                 data["transactions"].push({
                     "timestamp": date.getTime() / 1000,
                     "comment": comment.value,
                     "amount": amount.value,
-                    "borrower": borrower
+                    "borrower": borrower,
+                    "lender": lender,
                 })
             }
 
@@ -291,7 +306,7 @@
                 case 200:
                     document.location.reload(true);
                     break;
-                case 500:
+                default:
                     document.getElementById("error" + this.iouId).style.display = "block";
                     break;
             }
