@@ -125,15 +125,14 @@
                 </tbody>
             </table>
 
-            <!-- TODO: Re-instate this in new code -->
-            <!-- <p> -->
-            <!--     In total you have borrowed <span class="debt"> -->
-            <!--     £{{ data[other_person]["total_borrowed"] }} -->
-            <!--     </span>, -->
-            <!--     and {{ other_person }} has borrowed <span class="owed"> -->
-            <!--     £{{ data[other_person]["total_owed"] }} -->
-            <!--     </span> -->
-            <!-- </p> -->
+            <p>
+                In total you have borrowed <span class="debt">
+                £{{ format_money(data[other_person]["total_borrowed"]) }}
+                </span>,
+                and {{ other_person }} has borrowed <span class="owed">
+                £{{ format_money(data[other_person]["total_owed"]) }}
+                </span>
+            </p>
 
         </div>
 

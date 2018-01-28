@@ -47,9 +47,9 @@ class TestApp(object):
         t_john_george = []
         iou_app.add_transactions(t_john_paul + t_paul_george + t_john_george)
 
-        assert list(iou_app.get_ious("john")) == [Statement("john", "paul", -25)]
-        expected = set([Statement("paul", "john", 25),
-                        Statement("paul", "george", -50)])
+        assert list(iou_app.get_ious("john")) == [Statement("john", "paul", -25, 5, 30)]
+        expected = set([Statement("paul", "john", 25, 30, 5),
+                        Statement("paul", "george", -50, 0, 50)])
         assert set(iou_app.get_ious("paul")) == expected
 
         t_john_paul = list(iou_app.get_transactions("john", "paul"))

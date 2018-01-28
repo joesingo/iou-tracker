@@ -3,7 +3,7 @@ from datetime import datetime
 
 from flask import Flask, session, redirect, render_template, request, abort
 
-from iou import IOUApp, Statement, Transaction
+from iou import IOUApp, Transaction
 from exceptions import DuplicateUsernameError
 
 app = Flask(__name__)
@@ -28,6 +28,8 @@ def home():
     for statement in iou_app.get_ious(user):
         data[statement.other_person] = {
             "owed": statement.owed,
+            "total_owed": statement.total_owed,
+            "total_borrowed": statement.total_borrowed,
             "transactions": iou_app.get_transactions(user, statement.other_person)
         }
     return render_template("list.html", data=data, format_money=format_money,

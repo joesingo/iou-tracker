@@ -11,7 +11,8 @@ Transaction = namedtuple("Transaction", ["borrower", "lender", "amount",
 
 
 # `owed` is the amount `other_person` owes `user` - may be negative
-Statement = namedtuple("Statement", ["user", "other_person", "owed"])
+Statement = namedtuple("Statement", ["user", "other_person", "owed",
+                                     "total_owed", "total_borrowed"])
 
 
 class IOUApp(object):
@@ -66,10 +67,17 @@ class IOUApp(object):
         Yield instances of Statement for all IOUs associated with the given user
         """
         query = """
-            SELECT other_person, SUM(amount_owed) as total_owed FROM (
+            SELECT
+                other_person,
+                SUM(amount_owed) AS owed,
+                SUM(borrow) AS total_borrowed,
+                SUM(lend) AS total_owed
+            FROM (
                 SELECT
-                    (CASE borrower WHEN :user THEN lender ELSE borrower END) as other_person,
-                    amount * (CASE lender WHEN :user THEN 1 ELSE -1 END) AS amount_owed
+                    (CASE borrower WHEN :user THEN lender ELSE borrower END) AS other_person,
+                    amount * (CASE lender WHEN :user THEN 1 ELSE -1 END) AS amount_owed,
+                    amount * (CASE lender WHEN :user THEN 1 ELSE 0 END) AS lend,
+                    amount * (CASE lender WHEN :user THEN 0 ELSE 1 END) AS borrow
                 FROM iou_transaction
                 WHERE borrower = :user OR lender = :user
             )
@@ -77,7 +85,8 @@ class IOUApp(object):
         """
         self.cursor.execute(query, {"user": user})
         for row in self.cursor.fetchall():
-            yield Statement(user, row["other_person"], row["total_owed"])
+            yield Statement(user, row["other_person"], row["owed"],
+                            row["total_owed"], row["total_borrowed"])
 
     def get_transactions(self, user1, user2):
         """
