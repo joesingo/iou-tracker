@@ -7,8 +7,7 @@ class TestApp(object):
     @pytest.fixture
     def iou_app(self):
         app = IOUApp(db_path=":memory:")
-        with open("schema.sql") as schema_file:
-            app.cursor.executescript(schema_file.read())
+        app.create_tables()
         return app
 
     def test_user_auth(self, iou_app):

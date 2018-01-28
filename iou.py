@@ -24,6 +24,13 @@ class IOUApp(object):
         # Enforce foreign key checking
         conn.execute("PRAGMA foreign_keys = ON;")
 
+    def create_tables(self):
+        """
+        Read the table definitions in the schema file and execute them
+        """
+        with open("schema.sql") as schema_file:
+            self.cursor.executescript(schema_file.read())
+
     def add_user(self, username, password):
         password_hash = pbkdf2_sha256.encrypt(password, rounds=2000, salt_size=16)
         try:
