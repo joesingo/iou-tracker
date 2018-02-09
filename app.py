@@ -99,13 +99,9 @@ def logout():
 
 def format_money(n):
     """
-    Convert n to a string and add an extra 0 on the end if necessary
+    Return a string representation of n to 2 decimal places
     """
-    s = str(n)
-    if re.search("\.\d$", s):
-        s += "0"
-
-    return s
+    return "{:.2f}".format(n)
 
 def format_timestamp(timestamp):
     """
