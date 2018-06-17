@@ -46,9 +46,6 @@ touch ioudb
 
 docker build -t iou .
 docker run -d -p 5321:7000 -v $(pwd)/ioudb:/iou/ioudb iou
-
-# If using a new DB then need to create tables
-docker exec <container ID> /iou/setup.py --tables
 ```
 
 This will start the app on local port 5321, and use the local file `ioudb` for

@@ -1,3 +1,4 @@
+import sys
 import sqlite3
 from collections import namedtuple
 
@@ -27,8 +28,20 @@ class IOUApp(object):
 
     def create_tables(self):
         """
-        Read the table definitions in the schema file and execute them
+        Read the table definitions in the schema file and execute them. Print
+        a warning if the tables have already been created.
         """
+        # use iou_transaction as test for whether all tables have been created
+        self.cursor.execute("""
+            SELECT name
+            FROM sqlite_master
+            WHERE type='table' AND name='iou_transaction'
+        """)
+        row = self.cursor.fetchone()
+        if row is not None:
+            sys.stderr.write("warning: tables already exist\n")
+            return
+
         with open("schema.sql") as schema_file:
             self.cursor.executescript(schema_file.read())
 
