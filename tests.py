@@ -52,10 +52,6 @@ class TestApp(object):
                         Statement("paul", "george", -50, 0, 50)])
         assert set(iou_app.get_ious("paul")) == expected
 
-        t_john_paul = list(iou_app.get_transactions("john", "paul"))
-        t_john_george = list(iou_app.get_transactions("john", "george"))
-        t_paul_george = list(iou_app.get_transactions("paul", "george"))
-
         assert list(iou_app.get_transactions("john", "paul")) == t_john_paul
         assert list(iou_app.get_transactions("john", "george")) == t_john_george
         assert list(iou_app.get_transactions("paul", "george")) == t_paul_george
