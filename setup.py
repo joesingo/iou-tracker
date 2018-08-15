@@ -32,7 +32,8 @@ if __name__ == "__main__":
             comment = "Creating IOU for {} and {}".format(u1, u2)
             print(comment)
             app.add_transactions([Transaction(borrower=u1, lender=u2, amount=0,
-                                              timestamp=ts, comment=comment)])
+                                              timestamp=ts, comment=comment,
+                                              balance=0)])
             break
     else:
         usage(1)

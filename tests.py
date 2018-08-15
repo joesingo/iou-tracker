@@ -1,3 +1,5 @@
+import copy
+
 import pytest
 
 from iou import IOUApp, Statement, Transaction
@@ -37,24 +39,32 @@ class TestApp(object):
         timestamp = 100
 
         t_john_paul = [
-            Transaction("john", "paul", 10, timestamp, "comment"),
-            Transaction("john", "paul", 20, timestamp - 1, "comment"),
-            Transaction("paul", "john", 5, timestamp - 2, "comment"),
+            Transaction("john", "paul", 10, timestamp, "comment", 25),
+            Transaction("john", "paul", 20, timestamp - 1, "comment", 15),
+            Transaction("paul", "john", 5, timestamp - 2, "comment", 5),
         ]
         t_paul_george = [
-            Transaction("paul", "george", 50, timestamp, "comment"),
+            Transaction("paul", "george", 50, timestamp, "comment", 50),
         ]
         t_john_george = []
-        iou_app.add_transactions(t_john_paul + t_paul_george + t_john_george)
+        def remove_balances(ts):
+            for t in copy.deepcopy(ts):
+                t.balance = None
+                yield t
+        iou_app.add_transactions(remove_balances(t_john_paul + t_paul_george +
+                                                 t_john_george))
 
         assert list(iou_app.get_ious("john")) == [Statement("john", "paul", -25, 5, 30)]
         expected = set([Statement("paul", "john", 25, 30, 5),
                         Statement("paul", "george", -50, 0, 50)])
         assert set(iou_app.get_ious("paul")) == expected
 
-        assert list(iou_app.get_transactions("john", "paul")) == t_john_paul
-        assert list(iou_app.get_transactions("john", "george")) == t_john_george
-        assert list(iou_app.get_transactions("paul", "george")) == t_paul_george
+        t_john_paul_got = iou_app.get_transactions("john", "paul")
+        t_john_george_got = iou_app.get_transactions("john", "george")
+        t_paul_george_got = iou_app.get_transactions("paul", "george")
+        assert list(t_john_paul_got) == t_john_paul
+        assert list(t_john_george_got) == t_john_george
+        assert list(t_paul_george_got) == t_paul_george
 
     def test_get_transactions(self, iou_app):
         """

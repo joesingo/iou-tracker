@@ -38,15 +38,14 @@ def home():
 @app.route("/save/", methods=["POST"])
 def save():
     """
-    Take a JSON object containing new transactions to be saved and append them
-    to the doc in the DB
+    Take a JSON object containing new transactions to be saved and save them in
+    the DB
     """
     data = request.json
     try:
         t_list = map(lambda d: Transaction(**d), data["transactions"])
     except KeyError:
         abort(400)
-
 
     try:
         iou_app.add_transactions(t_list)

@@ -12,6 +12,7 @@ CREATE TABLE iou_transaction (
     amount    FLOAT,
     timestamp INTEGER,
     comment   TEXT,
+    balance   FLOAT,
 
     FOREIGN KEY(borrower) REFERENCES user(username),
     FOREIGN KEY(lender) REFERENCES user(username)

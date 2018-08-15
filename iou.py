@@ -7,16 +7,43 @@ from passlib.hash import pbkdf2_sha256
 from exceptions import DuplicateUsernameError, InvalidUsernameException
 
 
-Transaction = namedtuple("Transaction", ["borrower", "lender", "amount",
-                                         "timestamp", "comment"])
-
-
 # `owed` is the amount `other_person` owes `user` - may be negative
 Statement = namedtuple("Statement", ["user", "other_person", "owed",
                                      "total_owed", "total_borrowed"])
 
 
-class IOUApp(object):
+class Transaction:
+    def __init__(self, borrower, lender, amount, timestamp, comment,
+                 balance=None):
+        self.borrower = borrower
+        self.lender = lender
+        self.amount = amount
+        self.timestamp = timestamp
+        self.comment = comment
+        self.balance = balance
+
+    def to_tuple(self):
+        return (self.borrower, self.lender, self.amount, self.timestamp,
+                self.comment, self.balance)
+
+    def to_dict(self):
+        return {
+            "borrower": self.borrower,
+            "lender": self.lender,
+            "amount": self.amount,
+            "timestamp": self.timestamp,
+            "comment": self.comment,
+            "balance": self.balance
+        }
+
+    def __eq__(self, x):
+        return self.to_tuple() == x.to_tuple()
+
+    def __repr__(self):
+        return repr(self.to_tuple())
+
+
+class IOUApp:
     def __init__(self, db_path="ioudb"):
         conn = sqlite3.connect(db_path, check_same_thread=False, isolation_level=None)
         # This gives the ability to access results by key instead of just index
@@ -65,15 +92,44 @@ class IOUApp(object):
 
         return pbkdf2_sha256.verify(password, row["hash"])
 
+    def get_transaction_balance(self, transaction):
+        """
+        Calculate the `balance` field for a new transaction
+        """
+        # Get the most previous entry for these users
+        query = """
+            SELECT lender, balance
+            FROM iou_transaction
+            WHERE (borrower = :user1 AND lender = :user2) OR
+                  (borrower = :user2 AND lender = :user1)
+            ORDER BY timestamp DESC
+            LIMIT 1
+        """
+        self.cursor.execute(query, {"user1": transaction.lender,
+                                    "user2": transaction.borrower})
+        row = self.cursor.fetchone()
+        if row:
+            sign = 1 if row["lender"] == transaction.lender else -1
+            prev_balance = row["balance"] * sign
+        else:
+            print("First transaction!")
+            prev_balance = 0
+
+        return transaction.amount + prev_balance
+
     def add_transactions(self, t_list):
         """
         Store a list of Transaction objects in the database.
         """
-        try:
-            self.cursor.executemany("""INSERT INTO iou_transaction VALUES
-                                       (NULL, ?, ?, ?, ?, ?)""", t_list)
-        except sqlite3.IntegrityError:
-            raise InvalidUsernameException("Invalid username in list of transactions")
+        for transaction in t_list:
+            transaction.balance = self.get_transaction_balance(transaction)
+            try:
+                self.cursor.execute(
+                    "INSERT INTO iou_transaction VALUES (NULL, ?, ?, ?, ?, ?, ?)",
+                    transaction.to_tuple()
+                )
+            except sqlite3.IntegrityError:
+                raise InvalidUsernameException("Invalid username in list of transactions")
 
     def get_ious(self, user):
         """
@@ -107,7 +163,7 @@ class IOUApp(object):
         user2
         """
         query = """
-            SELECT borrower, lender, amount, timestamp, comment
+            SELECT borrower, lender, amount, timestamp, comment, balance
             FROM iou_transaction
             WHERE (borrower = :user1 AND lender = :user2) OR
                   (borrower = :user2 AND lender = :user1)
@@ -116,4 +172,4 @@ class IOUApp(object):
         self.cursor.execute(query, {"user1": user1, "user2": user2})
         for row in self.cursor.fetchall():
             yield Transaction(row["borrower"], row["lender"], row["amount"],
-                              row["timestamp"], row["comment"])
+                              row["timestamp"], row["comment"], row["balance"])
