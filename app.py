@@ -1,3 +1,4 @@
+import os
 import re
 from datetime import datetime
 
@@ -109,7 +110,7 @@ def format_timestamp(timestamp):
     """
     return datetime.fromtimestamp(timestamp).strftime("%d/%m/%y")
 
-app.secret_key = "\xf2%Z\xfa\\0\xd0\xb5\x8e9\x87\xea\xa4{\x8es"
+app.secret_key = os.urandom(16)
 
 if __name__ == "__main__":
     app.run(debug=False, host="0.0.0.0", port=7000)
